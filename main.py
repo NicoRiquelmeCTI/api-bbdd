@@ -46,10 +46,11 @@ def new_message():
 
 @app.route("/messages/project-search<string:receiver>")
 def project_search_message(receiver):
-    correos.createIndex({"metadata.sender":"text"})
-    encontrados_sender = entidades.find({$text: {$search: "\"receiver\""}},{"metadata.sender":1})
-    encontrados_rec = entidades.find({$text: {$search: "\"receiver\""}},{"metadata.receiver":1})
-    encontrados = encontrados_sender + encontrados_rec
+    mensajes = list(correos)
+    encontrados = []
+    for mensaje in mensajes:
+        if receiver in mensaje["metadata"]["sender"] or receiver in mensaje["metadata"]["receiver"]:
+            encontrados.append(mensaje)
     return json.jsonify(encontrados)
 
 @app.route("/messages/content-search<string:content>")
