@@ -57,7 +57,30 @@ def project_search_message(receiver):
 
 @app.route("/messages/content-search<string:content>")
 def content_search_message(content):
-    return None
+    mensajes = list(correos)
+    #Transformo el string a su formato json
+    buscar = json.loads(content)
+    resultado = []
+    for mensaje in mensajes:
+        if verificar_message(mensaje["content"], buscar):
+            resultado.append(mensaje)
+    return json.jsonify(resultado)
+
+def verificar_message(contenido, buscar):
+    #Asumí que cada arreglo de criterios tendrá como values una lista
+    prohibidas = buscar["forbidden"]
+    requeridas = buscar["request"]
+    deseadas = buscar["desired"]
+    for p in prohibidas:
+        if p not in contenido:
+            return False
+    for r in requeridas:
+        if r not in contenido:
+            return False
+    for d in deseadas:
+        if d not in deseadas:
+            return False
+    return True
 
 #------------ Entrega 5 ----------------------------
 
