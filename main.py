@@ -29,6 +29,8 @@ app = Flask(__name__)
 def home():
     return "<h1>Bienvenido</h1>"
 
+# -------- Entrega 4 --------------
+
 @app.route("/message/<string:mid>")
 def get_message(mid):
     mensajes = list(correos.find(mid))
@@ -55,20 +57,9 @@ def project_search_message(receiver):
 
 @app.route("/messages/content-search<string:content>")
 def content_search_message(content):
-    return
+    return None
 
-@app.route("/")
-def home():
-    return "<h1>HELLO</h1>"
-
-# Mapeamos esta función a la ruta '/plot' con el método get.
-@app.route("/plot")
-def plot():
-    # Export la figura para usarla en el html
-    pth = os.path.join('static', 'plot.png')
-
-    # Retorna un html "rendereado"
-    return render_template('plot.html')
+#------------ Entrega 5 ----------------------------
 
 @app.route("/users")
 def get_users():
