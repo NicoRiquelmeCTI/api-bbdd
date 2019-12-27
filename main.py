@@ -69,9 +69,10 @@ def project_search_message(receiver):
     qcorreos = list(correos.find({},{"_id":0}))
     proyectos_e = []
     for correo in qcorreos:
-        if correo["metadata"]["receiver"] == receiver or correo["metadata"]["sender"] == receiver:
-            print(correo)
-            proyectos_e.append(correo)
+        if "receiver" in correo["metadata"].keys() or "sender" in correo["metadata"].keys():
+            if correo["metadata"]["receiver"] == receiver or correo["metadata"]["sender"] == receiver:
+                print(correo)
+                proyectos_e.append(correo)
     return json.jsonify({'result': 'Correos relacionados a: {0}'.format(receiver), 'message': proyectos_e})
 
 @app.route("/messages/content-search/")
@@ -113,19 +114,53 @@ def intersection(lst1, lst2):
 
 #------------ Entrega 5 ----------------------------
 
-@app.route("/users")
-def get_users():
-    # Omitir el _id porque no es json serializable
-    resultados = ['Pedro', 'Juan', 'Diego']
-    return json.jsonify(resultados)
+#Seleccionar colección de socios
+socios = db.socios
+socios_data = {}
+@app.route("/info-socio/<sid>")
+def info_socio(sid):
+    socio = socios.find({'sid': sid})
+    socio_data= {
+        'nombre': socio['name'],
+        'apellido': socio['last name'],
+        'nacionalidad': socio['nacionality']
+            } 
+    correos = list(db.correos.find({},{"_id":0}))
+    for correo in correos:
+        if correo['metadata']["sender"] == socio['name']:
+            if correo.find({'content':"\"recurso de protección\" -clausurado"}):
+                if correo["metadata"]["sender"] in socios_data.keys():
+                    socios_data[correo["metadata"]["sender"]] = socios_data[correo["metadata"]["sender"]] + 1
+                else:
+                    socios_data[correo["metadata"]["sender"]] = 1
+    return json.jsonify({'result': 'correos del socio encontrados', 'message': socio_data})
 
-@app.route("/users", methods=['POST'])
-def create_user():
-    '''
-    Crea un nuevo usuario en la base de datos
-    Se  necesitan todos los atributos de model, a excepcion de _id
-    '''
-    return json.jsonify({'success': True, 'message': 'Usuario con id 1 creado'})
+#Seleccionar colección de proyectos
+proyectos = db.projectos
+@app.route("/info-project/")
+def info_proyecto():
+    qcorreos = list(correos.find({},{"_id":0}))
+    proyectos_e = []
+    projects = {}
+    for proyecto in list(proyectos.find()):
+        for correo in qcorreos:
+            if "sender" in correo["metadata"].keys():
+                if correo["metadata"]["sender"] == proyecto['name']:
+                    if proyecto['name'] in projects.keys():
+                        projects[proyecto['name']].append(correo)
+                    else:
+                        projects[proyecto['name']] = {'poject': proyecto, 'correos':[]}
+    data = []
+    for np, p in projects.items():
+        info_p = {
+            'name_project': np,
+            'data2': p['project']['arg2'],
+            'data3': p['project']['arg3'],
+            'conteo': len(p['correos'])
+        }
+        data.append(info_p)
+
+    return json.jsonify({'result': 'detalle de proyectos', 'message': data})
 
 @app.route("/test")
 def test():
