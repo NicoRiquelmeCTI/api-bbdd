@@ -31,33 +31,86 @@ def home():
 
 # -------- Entrega 4 --------------
 
-@app.route("/message/<string:mid>")
+@app.route("/messages/<mid>")
 def get_message(mid):
-    mensajes = list(correos.find(mid))
+    mensajes = list(correos.find({"id":mid}, {"_id":0}))
     return json.jsonify(mensajes)
 
-@app.route("/message/<string:id>", methods=['DELETE'])
+@app.route("/messages/<string:id>", methods=['DELETE'])
 def delete_message(id):
     correos.delete_one({"id": id})
     mensaje = f"Correo id {id} ha sido eliminado"
     return json.jsonify({'result': 'success', 'msn': mensaje})
 
-@app.route("/message/", methods=['POST'])
+@app.route("/messages", methods=['POST'])
 def new_message():
-    return
+    data = {key: request.json[key] for key in D_KEYS}
+    print(data)
+    count = correos.count_documents({})
+    data["id"] = str(count) + "asdf"
+    resultado = correos.insert_one(data)
+    if (resultado):
+        msn = "Correo creado con éxito :D"
+        success = True
+    else:
+        msn = "No se pudo crear el correo :("
+        success = False
+    return json.jsonify({'result': success, 'msn': msn})
 
-@app.route("/messages/project-search<string:receiver>")
-def project_search_message(receiver):
-    mensajes = list(correos)
-    encontrados = []
+@app.route("/messages/")
+def all_messages():
+    mensajes = list(correos.find({},{"_id":0}))
     for mensaje in mensajes:
-        if receiver in mensaje["metadata"]["sender"] or receiver in mensaje["metadata"]["receiver"]:
-            encontrados.append(mensaje)
-    return json.jsonify(encontrados)
+        print(mensaje)
+    return json.jsonify({'result': 'Lista completa de correos', 'message': mensajes})
 
-@app.route("/messages/content-search<string:content>")
-def content_search_message(content):
-    return None
+@app.route("/messages/project-search/<string:receiver>")
+def project_search_message(receiver):
+    qcorreos = list(correos.find({},{"_id":0}))
+    proyectos_e = []
+    for correo in qcorreos:
+        if "receiver" in correo["metadata"].keys() or "sender" in correo["metadata"].keys():
+            if correo["metadata"]["receiver"] == receiver or correo["metadata"]["sender"] == receiver:
+                print(correo)
+                proyectos_e.append(correo)
+    return json.jsonify({'result': 'Correos relacionados a: {0}'.format(receiver), 'message': proyectos_e})
+
+@app.route("/messages/content-search/")
+def content_search_message():
+    mensajes_d = []
+    mensajes_r = []
+    mensajes_f = []
+    if request:
+        content = request.json
+        print(content)
+        if "desired" in content.keys():
+            for frase in content["desired"]:
+                for correo in list(correos.find({}, {"_id":0})):
+                    if frase in correo["content"]:
+                        mensajes_d.append(correo)
+        elif "required" in content.keys():
+            for frase in content["required"]:
+                for correo in list(correos.find({}, {"_id":0})):
+                    if frase in correo["content"]:
+                        mensajes_r.append(correo)
+        elif "forbidden" in content.keys():
+            for frase in content["forbidden"]:
+                for correo in list(correos.find({}, {"_id":0})):
+                    if frase in correo["content"]:
+                        mensajes_f.append(correo)
+
+        mns = mensajes_d+mensajes_r
+        if intersection(mensajes_d, mensajes_r) in mns:
+            mns.remove(intersection(mensajes_d, mensajes_r))
+        elif mensajes_f in mns:
+            mns.remove(mensajes_f)
+        return json.jsonify({'result': 'Correos', 'message': mns})
+    else:
+        return json.jsonify({'result': 'Correos', 'message': "no hay nada que mostrar"})
+
+def intersection(lst1, lst2): 
+    lst3 = [value for value in lst1 if value in lst2] 
+    return lst3 
 
 #------------ Entrega 5 ----------------------------
 
@@ -92,4 +145,4 @@ def test():
     return "OK"
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
